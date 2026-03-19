@@ -10,7 +10,7 @@
         <div class="card shadow-sm border-0">
             <div class="card-body p-4">
 
-                <!-- ⚠️ enctype obrigatório -->
+              
                 <form method="POST" action="/store" enctype="multipart/form-data">
                     <input type="hidden" name="csrf" value="<?= $csrf; ?>">
 
@@ -68,7 +68,7 @@
                         </div>
                     </div>
 
-                    <!-- 🖼️ UPLOAD DE CAPA -->
+                 
                     <div class="mb-4">
                         <label class="form-label fw-semibold">Capa do Disco</label>
 
@@ -111,14 +111,4 @@
     </div>
 </div>
 
-<script>
-function previewImage(event) {
-    const input = event.target;
-    const preview = document.getElementById('preview');
-
-    if (input.files && input.files[0]) {
-        preview.src = URL.createObjectURL(input.files[0]);
-        preview.style.display = 'block';
-    }
-}
-</script>
+<script src="/assets/js/previewImage.js"></script>

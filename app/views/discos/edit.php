@@ -130,15 +130,4 @@
         </div>
     </div>
 </div>
-
-<script>
-function previewImage(event) {
-    const input = event.target;
-    const preview = document.getElementById('preview');
-
-    if (input.files && input.files[0]) {
-        preview.src = URL.createObjectURL(input.files[0]);
-        preview.style.display = 'block';
-    }
-}
-</script>
+<script src="/assets/js/previewImage.js"></script>

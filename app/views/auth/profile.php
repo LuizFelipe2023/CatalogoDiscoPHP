@@ -71,17 +71,4 @@
     </div>
 </div>
 
-<style>
-    .form-control:focus {
-        box-shadow: none;
-        border-color: #dee2e6;
-        background-color: #fff !important;
-    }
-    .input-group:focus-within .input-group-text {
-        background-color: #fff !important;
-        color: var(--bs-primary) !important;
-    }
-    .tracking-wider {
-        letter-spacing: 0.05rem;
-    }
-</style>
+<link rel="stylesheet" href="/assets/css/profile.css">

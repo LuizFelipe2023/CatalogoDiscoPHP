@@ -1,65 +1,47 @@
-# VinylCatalog (Catálogo de Discos)
 
-Aplicação web em PHP (sem framework) para gerenciar sua coleção de discos. Você pode registrar, fazer login e cadastrar discos com capa (upload), além de buscar e filtrar sua coleção.
+# VinylCatalog (Catálogo de Discos) 💿
 
-## Tecnologias
+Aplicação web em PHP puro (arquitetura MVC simplificada) para gerenciar sua coleção de discos. O sistema permite controle total de usuários por administradores e gerenciamento de discos com upload de capas.
 
-- PHP
-- MySQL (via PDO)
-- Bootstrap 5 (CSS/JS locais em `public/assets/bootstrap` + Bootstrap Icons via CDN)
-- JavaScript (modais/alertas)
+## 🚀 Tecnologias
 
-## Requisitos
+- **PHP 8.x**
+- **MySQL** (via PDO)
+- **Bootstrap 5** & **Bootstrap Icons**
+- **JavaScript** (Vanilla)
 
-- PHP com extensão PDO habilitada
-- MySQL/MariaDB
-- Pasta `public/uploads` com permissão de escrita (para salvar as capas)
+## 📋 Requisitos
 
-## Configuração do banco
+- PHP com extensão **PDO** e **GD** (para imagens) habilitadas.
+- MySQL/MariaDB.
+- Permissão de escrita na pasta `public/uploads`.
 
-1. Copie/edite o arquivo `.env` na raiz do projeto.
-2. Configure:
-   - `DB_HOST`
-   - `DB_NAME`
-   - `DB_USER`
-   - `DB_PASS`
+## ⚙️ Configuração
 
-Exemplo (arquivo `.env`):
-
+1. Crie um arquivo `.env` na raiz do projeto (ou edite o existente):
 ```env
 DB_HOST=localhost
 DB_NAME=catalogo_discos
 DB_USER=root
-DB_PASS=...
+DB_PASS=suasenha
 ```
 
-## Tabelas (SQL sugerido)
+## 🗄️ Estrutura do Banco de Dados (SQL)
 
-O projeto espera estas tabelas/colunas:
-
-- `usuarios`: `id`, `nome`, `email`, `password`
-- `discos`: `id`, `nome`, `genero`, `artista`, `avaliacao`, `formato`, `status`, `user_id`, `capa`
-
-Use como base o script abaixo (ajuste nomes/tamanhos se necessário):
 
 ```sql
-CREATE DATABASE IF NOT EXISTS catalogo_discos
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
+CREATE DATABASE IF NOT EXISTS catalogo_discos CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE catalogo_discos;
 
--- 1. Tabela de Usuários (Adicionado is_admin)
 CREATE TABLE IF NOT EXISTS usuarios (
   id INT AUTO_INCREMENT PRIMARY KEY,
   nome VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
-  is_admin BOOLEAN NOT NULL DEFAULT FALSE, -- O "crachá" de administrador
+  is_admin BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. Tabela de Discos (Relacionada ao usuário)
 CREATE TABLE IF NOT EXISTS discos (
   id INT AUTO_INCREMENT PRIMARY KEY,
   nome VARCHAR(255) NOT NULL,
@@ -71,75 +53,56 @@ CREATE TABLE IF NOT EXISTS discos (
   user_id INT NOT NULL,
   capa VARCHAR(255) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  -- Chave Estrangeira com deleção em cascata
-  CONSTRAINT fk_discos_usuario
-    FOREIGN KEY (user_id) REFERENCES usuarios(id)
-    ON DELETE CASCADE
+  CONSTRAINT fk_discos_usuario FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_discos_user_id ON discos(user_id);
-CREATE INDEX idx_usuarios_email ON usuarios(email); 
-
 INSERT INTO usuarios (nome, email, password, is_admin) 
-VALUES ('Administrador', 'admin@admin.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1);
+VALUES ('Administrador', 'admin@admin.com', '$2y$10$OJfE8IlgNYEV9F58HqR.MOiEdRJ3ajL8R/3aLWlFxQs3xYLpuq/A6', 1);
+
 ```
 
-## Como rodar
+## 🛣️ Rotas do Sistema
 
-1. Aponte seu servidor web para a pasta `public/` (por exemplo, com Laragon).
-2. Acesse:
-   - `/login`
-   - `/register`
-3. Após logar, você entra em `/` (lista e filtros da coleção).
+### Públicas
+- `GET/POST /login` - Acesso ao sistema
+- `GET/POST /register` - Cadastro de novos colecionadores
 
-## Rotas principais
+### Coleção (Privado)
+- `GET /` ou `/colecao` - Dashboard com filtros e busca
+- `GET /create` | `POST /store` - Adicionar novo disco
+- `GET /edit/{id}` | `POST /update` - Editar dados do disco
+- `POST /delete` - Remover disco da coleção
 
-- `GET/POST /login`  
-- `GET/POST /register`  
-- `GET /logout`  
+### Administrativo (Somente Admin)
+- `GET /users` - Listagem de todos os usuários
+- `GET /users/create` | `POST /users/store` - Novo usuário via admin
+- `GET /users/edit/{id}` | `POST /users/update` - Editar qualquer usuário (incluindo nível de acesso)
+- `POST /users/delete` - Remover usuário do sistema
 
-- `GET /` (lista de discos com busca/filtros/paginação)
-- `GET /colecao` (mesma tela de `/`)
-- `GET /create` e `POST /store` (criar disco)
-- `GET /edit/{id}` e `POST /update` (editar disco)
-- `GET /disco/{id}` (detalhes do disco)
-- `POST /delete` (excluir disco)
+### Perfil
+- `GET /profile` | `POST /profile` - Meus dados e alteração de senha
 
-- `GET /profile` e `POST /profile` (atualizar nome e e-mail)
+## 🛡️ Segurança Implementada
 
-### Filtros na lista (`/`)
+- **BCRYPT**: Proteção de senhas com `password_hash`.
+- **CSRF Protection**: Tokens de validação em todos os formulários `POST`.
+- **Middleware de Autenticação**: Verificação de sessão e nível de privilégio (`is_admin`).
+- **PDO Prepared Statements**: Proteção total contra SQL Injection.
 
-Você pode usar query string na URL:
+## 📂 Estrutura de Pastas
 
-- `q`: busca por `nome`, `artista` e `genero`
-- `status`: `Na Coleção`, `Desejado` ou `Emprestado`
-- `genero`: opções configuradas no front
-- `formato`: opções configuradas no front
-- `sort`: ordenação (ex.: `nome_asc`, `avaliacao_desc`)
-- `page`: número da página
+```text
+├── app/
+│   ├── controllers/   # Lógica de controle
+│   ├── core/          # Classes base (Router, Database, Auth...)
+│   ├── models/        # Classes de dados (Usuario, Disco)
+│   ├── repositories/  # Consultas ao banco de dados
+│   └── views/         # Arquivos .php de visualização
+├── public/
+│   ├── assets/        # CSS, JS e Imagens estáticas
+│   ├── uploads/       # Capas dos discos enviadas
+│   └── index.php      # Front Controller (Entrada do app)
+└── .env               # Configurações sensíveis
+```
 
-## Segurança
-
-- Senhas: hash com `password_hash()` + verificação com `password_verify()`.
-- CSRF: tokens gerados pelo `app/core/Csrf.php` e validados nos POST (ex.: delete, store, update, profile).
-- Acesso às rotas protegidas: as rotas do catálogo exigem login via `app/core/Auth.php`.
-
-## Estrutura do projeto
-
-- `public/`
-  - `index.php`: front controller e definição das rotas
-  - `assets/`: CSS/JS do app e assets do Bootstrap
-  - `uploads/`: local para capas
-- `app/`
-  - `core/`: Router, Auth, Flash, View, Csrf, Database
-  - `controllers/`: DiscoController, AuthController
-  - `repositories/`: DiscoRepository, UsuarioRepository
-  - `models/`: Disco, Usuario
-  - `views/`: layouts, partials e telas
-
-## Próximos passos (ideias)
-
-- Página de detalhes com mais seções (ações rápidas, histórico e layout melhorado)
-- Upload com validações mais completas e feedback visual
-- Paginação e ordenação mais sofisticadas (ex.: multi-filtro com contagens por categoria)
-
+---
