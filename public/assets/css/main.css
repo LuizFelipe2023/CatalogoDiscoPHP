@@ -1,0 +1,30 @@
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f8f9fa;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+.main-content {
+    min-height: 80vh;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+.footer a:focus-visible,
+:focus-visible {
+    outline: 3px solid rgba(13,110,253,0.35);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+}
+
+.fade-out {
+    transition: opacity 0.5s ease;
+}
