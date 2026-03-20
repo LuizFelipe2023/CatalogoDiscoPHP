@@ -203,36 +203,40 @@ class AuthController
         $token = $this->repo->createPasswordResetToken($email);
 
         if ($token) {
-            $config = require __DIR__ . '/../core/Config.php';
-            $mailConfig = $config['mail'];
+            $envPath = __DIR__ . '/../../env.php';
+
+            if (file_exists($envPath)) {
+                require_once $envPath;
+            } else {
+                error_log("Aviso: Arquivo env.php não encontrado em: " . $envPath);
+            }
 
             $mail = new PHPMailer(true);
             try {
                 $mail->isSMTP();
-                $mail->Host = $mailConfig['host'];
-                $mail->SMTPAuth = $mailConfig['auth'];
-                $mail->Username = $mailConfig['username'];
-                $mail->Password = $mailConfig['password'];
-                $mail->Port = $mailConfig['port'];
+                $mail->Host = getenv('MAIL_HOST');
+                $mail->SMTPAuth = true;
+                $mail->Username = getenv('MAIL_USERNAME');
+                $mail->Password = getenv('MAIL_PASSWORD');
+                $mail->Port = (int) getenv('MAIL_PORT');
                 $mail->CharSet = 'UTF-8';
 
-                $mail->setFrom($mailConfig['from_email'], $mailConfig['from_name']);
+                $mail->setFrom(getenv('MAIL_FROM_EMAIL'), getenv('MAIL_FROM_NAME'));
                 $mail->addAddress($email);
 
                 $mail->isHTML(true);
-                $mail->Subject = 'Código de Recuperação de Senha';
-                $mail->Body = "Seu código de verificação é: <b style='font-size: 24px;'>$token</b><br>Este código expira em 15 minutos.";
+                $mail->Subject = 'Codigo de Recuperacao de Senha';
+                $mail->Body = "Seu codigo de verificacao e: <b style='font-size: 24px;'>$token</b><br>Este código expira em 15 minutos.";
 
                 $mail->send();
 
                 $_SESSION['reset_email'] = $email;
-                Flash::set('success', 'Código enviado! Verifique sua caixa de entrada.');
+                Flash::set('success', 'Código enviado! Verifique seu e-mail.');
                 header("Location: /verify-token");
                 exit;
             } catch (Exception $e) {
-                Flash::set('error', "Erro ao enviar e-mail. Verifique as configurações de SMTP.");
-                // Log para você ver o erro real sem expor ao usuário:
-                error_log($mail->ErrorInfo);
+                Flash::set('error', "Erro ao enviar e-mail. Tente novamente mais tarde.");
+                error_log("Erro PHPMailer: " . $mail->ErrorInfo);
             }
         } else {
             Flash::set('error', 'E-mail não encontrado em nossa base.');
