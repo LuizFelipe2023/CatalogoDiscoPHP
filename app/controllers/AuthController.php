@@ -188,8 +188,7 @@ class AuthController
             'title' => 'Recuperar Senha'
         ]);
     }
-
-    public function sendResetToken()
+public function sendResetToken()
     {
         Csrf::validate($_POST['csrf'] ?? '');
         $email = trim($_POST['email'] ?? '');
@@ -203,30 +202,43 @@ class AuthController
         $token = $this->repo->createPasswordResetToken($email);
 
         if ($token) {
-            $envPath = __DIR__ . '/../../env.php';
+          
+            $configPath = __DIR__ . '/../../config.php';
 
-            if (file_exists($envPath)) {
-                require_once $envPath;
+          
+            if (!file_exists($configPath)) {
+                $configPath = $_SERVER['DOCUMENT_ROOT'] . '/config.php';
+            }
+
+            if (file_exists($configPath)) {
+                
+                $config = require $configPath;
+                $mailConfig = $config['mail'];
             } else {
-                error_log("Aviso: Arquivo env.php não encontrado em: " . $envPath);
+                error_log("Erro Crítico: config.php não encontrado para envio de e-mail.");
+                Flash::set('error', 'Erro interno de configuração.');
+                header("Location: /forgot-password");
+                exit;
             }
 
             $mail = new PHPMailer(true);
             try {
                 $mail->isSMTP();
-                $mail->Host = getenv('MAIL_HOST');
-                $mail->SMTPAuth = true;
-                $mail->Username = getenv('MAIL_USERNAME');
-                $mail->Password = getenv('MAIL_PASSWORD');
-                $mail->Port = (int) getenv('MAIL_PORT');
-                $mail->CharSet = 'UTF-8';
+                
+                $mail->Host       = $mailConfig['host'];
+                $mail->SMTPAuth   = true;
+                $mail->Username   = $mailConfig['username'];
+                $mail->Password   = $mailConfig['password'];
+                $mail->Port       = (int)$mailConfig['port'];
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS; // Recomendado para porta 587
+                $mail->CharSet    = 'UTF-8';
 
-                $mail->setFrom(getenv('MAIL_FROM_EMAIL'), getenv('MAIL_FROM_NAME'));
+                $mail->setFrom($mailConfig['from_email'], $mailConfig['from_name']);
                 $mail->addAddress($email);
 
                 $mail->isHTML(true);
                 $mail->Subject = 'Codigo de Recuperacao de Senha';
-                $mail->Body = "Seu codigo de verificacao e: <b style='font-size: 24px;'>$token</b><br>Este código expira em 15 minutos.";
+                $mail->Body    = "Seu codigo de verificacao e: <b style='font-size: 24px;'>$token</b><br>Este código expira em 15 minutos.";
 
                 $mail->send();
 

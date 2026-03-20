@@ -56,6 +56,16 @@ CREATE TABLE IF NOT EXISTS discos (
   CONSTRAINT fk_discos_usuario FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS password_resets (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(255) NOT NULL,
+  token VARCHAR(255) NOT NULL,
+  expires_at DATETIME NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (email),
+  INDEX (token)
+);
+
 INSERT INTO usuarios (nome, email, password, is_admin) 
 VALUES ('Administrador', 'admin@admin.com', '$2y$10$OJfE8IlgNYEV9F58HqR.MOiEdRJ3ajL8R/3aLWlFxQs3xYLpuq/A6', 1);
 

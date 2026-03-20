@@ -1,5 +1,14 @@
-.env
-Config.php
-/vendor/
-/libs/PHPMailer/
+# Configurações sensíveis (NUNCA SUBIR)
+config.php
 env.php
+.env
+
+# Dependências (O Composer baixa elas depois)
+/vendor/
+
+# Se o PHPMailer estiver dentro de libs e você não quer no GitHub
+/app/core/libs/PHPMailer/
+
+# Logs e arquivos temporários
+error_log
+.DS_Store
