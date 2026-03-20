@@ -28,6 +28,20 @@ Router::route('GET', '/logout', [$auth, 'logout']);
 
 /*
 |--------------------------------------------------------------------------
+| ROTAS DE RECUPERAÇÃO DE SENHA
+|--------------------------------------------------------------------------
+*/
+Router::route('GET', '/forgot-password', [$auth, 'forgotPasswordForm']);
+Router::route('POST', '/forgot-password', [$auth, 'sendResetToken']);
+
+Router::route('GET', '/verify-token', [$auth, 'verifyTokenForm']);
+Router::route('POST', '/verify-token', [$auth, 'verifyToken']);
+
+Router::route('GET', '/reset-password', [$auth, 'resetPasswordForm']);
+Router::route('POST', '/reset-password', [$auth, 'resetPassword']);
+
+/*
+|--------------------------------------------------------------------------
 | ROTAS PROTEGIDAS (DISCOS)
 |--------------------------------------------------------------------------
 */

@@ -7,6 +7,14 @@ require_once __DIR__ . '/../core/Flash.php';
 require_once __DIR__ . '/../core/View.php';
 require_once __DIR__ . '/../core/Auth.php';
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\SMTP;
+
+
+require_once __DIR__ . '/../core/libs/PHPMailer/Exception.php';
+require_once __DIR__ . '/../core/libs/PHPMailer/PHPMailer.php';
+require_once __DIR__ . '/../core/libs/PHPMailer/SMTP.php';
 class AuthController
 {
     private UsuarioRepository $repo;
@@ -20,7 +28,7 @@ class AuthController
         }
     }
 
-    
+
     public function loginForm()
     {
         View::render('auth/login', [
@@ -51,10 +59,10 @@ class AuthController
         }
 
         $_SESSION['user'] = [
-            'id'       => $usuario->id,
-            'nome'     => $usuario->nome,
-            'email'    => $usuario->getEmail(),
-            'is_admin' => (bool)$usuario->is_admin 
+            'id' => $usuario->id,
+            'nome' => $usuario->nome,
+            'email' => $usuario->getEmail(),
+            'is_admin' => (bool) $usuario->is_admin
         ];
 
         Flash::set('success', "Olá, {$usuario->nome}! Bem-vindo de volta.");
@@ -101,16 +109,21 @@ class AuthController
         exit;
     }
 
-   
+
     public function logout()
     {
         $_SESSION = [];
-        
+
         if (ini_get("session.use_cookies")) {
             $params = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000,
-                $params["path"], $params["domain"],
-                $params["secure"], $params["httponly"]
+            setcookie(
+                session_name(),
+                '',
+                time() - 42000,
+                $params["path"],
+                $params["domain"],
+                $params["secure"],
+                $params["httponly"]
             );
         }
 
@@ -124,8 +137,8 @@ class AuthController
         Auth::requireLogin();
 
         View::render('auth/profile', [
-            'user'  => $_SESSION['user'],
-            'csrf'  => Csrf::generate(),
+            'user' => $_SESSION['user'],
+            'csrf' => Csrf::generate(),
             'title' => 'Meu Perfil'
         ]);
     }
@@ -134,11 +147,11 @@ class AuthController
     {
         Auth::requireLogin();
         Csrf::validate($_POST['csrf'] ?? '');
-        
-        $id    = (int)$_SESSION['user']['id'];
-        $nome  = trim($_POST['nome'] ?? '');
+
+        $id = (int) $_SESSION['user']['id'];
+        $nome = trim($_POST['nome'] ?? '');
         $email = trim($_POST['email'] ?? '');
-        $isAdmin = (bool)($_SESSION['user']['is_admin'] ?? false);
+        $isAdmin = (bool) ($_SESSION['user']['is_admin'] ?? false);
 
         if (empty($nome) || empty($email)) {
             Flash::set('error', 'Nome e E-mail não podem ficar vazios.');
@@ -164,6 +177,131 @@ class AuthController
             header("Location: /users");
         } else {
             header("Location: /colecao");
+        }
+        exit;
+    }
+
+    public function forgotPasswordForm()
+    {
+        View::render('auth/forgot_password', [
+            'csrf' => Csrf::generate(),
+            'title' => 'Recuperar Senha'
+        ]);
+    }
+
+    public function sendResetToken()
+    {
+        Csrf::validate($_POST['csrf'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+
+        if (!$email) {
+            Flash::set('error', 'Informe seu e-mail.');
+            header("Location: /forgot-password");
+            exit;
+        }
+
+        $token = $this->repo->createPasswordResetToken($email);
+
+        if ($token) {
+            $config = require __DIR__ . '/../core/Config.php';
+            $mailConfig = $config['mail'];
+
+            $mail = new PHPMailer(true);
+            try {
+                $mail->isSMTP();
+                $mail->Host = $mailConfig['host'];
+                $mail->SMTPAuth = $mailConfig['auth'];
+                $mail->Username = $mailConfig['username'];
+                $mail->Password = $mailConfig['password'];
+                $mail->Port = $mailConfig['port'];
+                $mail->CharSet = 'UTF-8';
+
+                $mail->setFrom($mailConfig['from_email'], $mailConfig['from_name']);
+                $mail->addAddress($email);
+
+                $mail->isHTML(true);
+                $mail->Subject = 'Código de Recuperação de Senha';
+                $mail->Body = "Seu código de verificação é: <b style='font-size: 24px;'>$token</b><br>Este código expira em 15 minutos.";
+
+                $mail->send();
+
+                $_SESSION['reset_email'] = $email;
+                Flash::set('success', 'Código enviado! Verifique sua caixa de entrada.');
+                header("Location: /verify-token");
+                exit;
+            } catch (Exception $e) {
+                Flash::set('error', "Erro ao enviar e-mail. Verifique as configurações de SMTP.");
+                // Log para você ver o erro real sem expor ao usuário:
+                error_log($mail->ErrorInfo);
+            }
+        } else {
+            Flash::set('error', 'E-mail não encontrado em nossa base.');
+        }
+        header("Location: /forgot-password");
+        exit;
+    }
+
+    public function verifyTokenForm()
+    {
+        if (!isset($_SESSION['reset_email'])) {
+            header("Location: /forgot-password");
+            exit;
+        }
+        View::render('auth/verify_token', [
+            'csrf' => Csrf::generate(),
+            'title' => 'Verificar Código'
+        ]);
+    }
+
+    public function verifyToken()
+    {
+        Csrf::validate($_POST['csrf'] ?? '');
+        $token = trim($_POST['token'] ?? '');
+
+        $email = $this->repo->validateToken($token);
+
+        if ($email && $email === $_SESSION['reset_email']) {
+            $_SESSION['token_verified'] = $token; // Autoriza a troca
+            header("Location: /reset-password");
+        } else {
+            Flash::set('error', 'Código inválido ou expirado.');
+            header("Location: /verify-token");
+        }
+        exit;
+    }
+
+    public function resetPasswordForm()
+    {
+        if (!isset($_SESSION['token_verified'])) {
+            header("Location: /forgot-password");
+            exit;
+        }
+        View::render('auth/reset_password', [
+            'csrf' => Csrf::generate(),
+            'title' => 'Nova Senha'
+        ]);
+    }
+
+    public function resetPassword()
+    {
+        if (!isset($_SESSION['token_verified']))
+            exit;
+
+        $password = $_POST['password'] ?? '';
+        $email = $_SESSION['reset_email'];
+        $token = $_SESSION['token_verified'];
+
+        $stmt = $this->repo->getByIdEmail($email);
+
+        if ($this->repo->updatePassword($stmt->id, $password)) {
+            $this->repo->deleteToken($token);
+            unset($_SESSION['reset_email'], $_SESSION['token_verified']);
+
+            Flash::set('success', 'Senha alterada com sucesso! Faça login.');
+            header("Location: /login");
+        } else {
+            Flash::set('error', 'Erro ao resetar senha.');
+            header("Location: /reset-password");
         }
         exit;
     }
